@@ -1,0 +1,110 @@
+import numpy as np
+import pandas as pd
+
+# ==========================================
+# 1. LOAD DATASETS
+# ==========================================
+
+df1 = pd.read_csv("C:/Users/saima/OneDrive/Desktop/ACN project/Datasets/Tuesday-WorkingHours.pcap_ISCX.csv", low_memory=True)
+df2 = pd.read_csv("C:/Users/saima/OneDrive/Desktop/ACN project/Datasets/Wednesday-workingHours.pcap_ISCX.csv", low_memory=True)
+df3 = pd.read_csv("C:/Users/saima/OneDrive/Desktop/ACN project/Datasets/Thursday-WorkingHours-Morning-WebAttacks.pcap_ISCX.csv", low_memory=True)
+
+# ==========================================
+# 2. COMBINE DATASETS
+# ==========================================
+
+dataset = pd.concat([df1, df2, df3], ignore_index=True)
+dataset.columns = dataset.columns.str.strip()
+
+# ==========================================
+# 3. SEPARATE FEATURES AND TARGET
+# ==========================================
+
+X = dataset.iloc[:, :-1]
+y = dataset.iloc[:, -1]
+
+# ==========================================
+# 4. CONVERT FEATURES TO NUMERIC
+# ==========================================
+
+X = X.apply(pd.to_numeric, errors='coerce')
+
+# ==========================================
+# 5. HANDLE INFINITE VALUES
+# ==========================================
+
+X.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+# ==========================================
+# 6. HANDLE MISSING VALUES
+# ==========================================
+
+from sklearn.impute import SimpleImputer
+imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
+X = imputer.fit_transform(X)
+
+# ==========================================
+# 7. ENCODE TARGET VARIABLE
+# ==========================================
+
+from sklearn.preprocessing import LabelEncoder
+labelencoder_y = LabelEncoder()
+y = labelencoder_y.fit_transform(y)
+
+# ==========================================
+# 8. TRAIN TEST SPLIT
+# ==========================================
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=0, stratify=y
+)
+
+# ==========================================
+# 9. PCA
+# ==========================================
+
+from sklearn.decomposition import PCA
+pca = PCA(n_components=15)
+X_train = pca.fit_transform(X_train)
+X_test = pca.transform(X_test)
+
+# ==========================================
+# 10. LOGISTIC REGRESSION
+# ==========================================
+
+from sklearn.linear_model import LogisticRegression
+classifier = LogisticRegression(max_iter=1000)  # increase iterations for convergence
+classifier.fit(X_train, y_train)
+
+# ==========================================
+# 11. PREDICTION
+# ==========================================
+
+y_pred = classifier.predict(X_test)
+
+# ==========================================
+# 12. EVALUATION METRICS
+# ==========================================
+
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred, average='weighted')
+recall = recall_score(y_test, y_pred, average='weighted')
+f1 = f1_score(y_test, y_pred, average='weighted')
+
+# ==========================================
+# 13. DISPLAY RESULTS
+# ==========================================
+
+print("====================================")
+print("LOGISTIC REGRESSION")
+print("TEST SIZE = 0.2")
+print("PCA COMPONENTS = 15")
+print("====================================")
+
+print("\nAccuracy  : {:.4f}".format(accuracy))
+print("Precision : {:.4f}".format(precision))
+print("Recall    : {:.4f}".format(recall))
+print("F1 Score  : {:.4f}".format(f1))
